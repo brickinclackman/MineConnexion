@@ -11,7 +11,7 @@ class NetworkMonitorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Network Monitor")
-        self.root.geometry("500x400")
+        self.root.geometry("500x450")
         self.root.attributes('-topmost', True)
         self.root.resizable(False, False)
 
@@ -76,6 +76,10 @@ class NetworkMonitorApp:
 
         self.line, = self.ax.plot([], [], label="Octets envoyés/s", color="#00acee")
         self.ax.legend(facecolor="#2b2b2b", edgecolor="#ffffff", labelcolor="#ffffff", loc="upper left")
+
+         # Label pour afficher la valeur du point survolé
+        self.value_label = ttk.Label(main_frame, text="", style="TLabel", font=("Helvetica", 10, "bold"), foreground="#ffffff")
+        self.value_label.pack(pady=5)
 
         # Ajuster les marges pour éviter les coupures
         self.figure.tight_layout()

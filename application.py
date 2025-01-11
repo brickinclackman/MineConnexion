@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.ticker import FuncFormatter
 import psutil
 import threading
 import time
@@ -35,7 +36,7 @@ class NetworkMonitorApp:
     def set_style(self):
         # Appliquer un thème ttk
         style = ttk.Style()
-        style.theme_use("clam")  # Autres options : 'default', 'alt', 'classic'
+        style.theme_use("clam")
 
         # Configurer les couleurs
         style.configure("TButton", font=("Helvetica", 12), padding=6)
@@ -56,22 +57,28 @@ class NetworkMonitorApp:
 
         # Matplotlib graphique
         self.figure, self.ax = plt.subplots(figsize=(4.5, 2.5))
-        
+
         # Appliquer un fond sombre
-        self.figure.patch.set_facecolor("#2b2b2b")  # Fond de la figure
-        self.ax.set_facecolor("#1e1e1e")  # Fond du graphique
+        self.figure.patch.set_facecolor("#2b2b2b")
+        self.ax.set_facecolor("#1e1e1e")
 
         self.ax.set_title("Débit réseau", fontsize=12, color="#ffffff")
         self.ax.set_xlabel("Temps (s)", fontsize=10, color="#dddddd")
-        self.ax.set_ylabel("Octets/s", fontsize=10, color="#dddddd")
+        self.ax.set_ylabel("Débit", fontsize=10, color="#dddddd")
         self.ax.spines['top'].set_color('#ffffff')
         self.ax.spines['bottom'].set_color('#ffffff')
         self.ax.spines['left'].set_color('#ffffff')
         self.ax.spines['right'].set_color('#ffffff')
         self.ax.tick_params(colors="#dddddd")
 
+        # Définir un formateur pour les unités dynamiques
+        self.ax.yaxis.set_major_formatter(FuncFormatter(self.format_units))
+
         self.line, = self.ax.plot([], [], label="Octets envoyés/s", color="#00acee")
         self.ax.legend(facecolor="#2b2b2b", edgecolor="#ffffff", labelcolor="#ffffff", loc="upper left")
+
+        # Ajuster les marges pour éviter les coupures
+        self.figure.tight_layout()
 
         # Intégrer le graphique dans Tkinter
         self.canvas = FigureCanvasTkAgg(self.figure, master=main_frame)
@@ -81,18 +88,33 @@ class NetworkMonitorApp:
         # Bouton Quitter
         quit_button = ttk.Button(main_frame, text="Quitter", style="QuitButton.TButton", command=self.quit_app)
         quit_button.pack(pady=10)
+        
+         # Modifier le curseur lors du survol du bouton "Quitter"
+        quit_button.bind("<Enter>", lambda event: quit_button.config(cursor="hand2"))  # Changer le curseur
+        quit_button.bind("<Leave>", lambda event: quit_button.config(cursor=""))  # Retour au curseur par défaut
+
+    def format_units(self, value, _):
+        """Formater les valeurs en fonction de leur échelle."""
+        if value >= 1e9:
+            return f"{value / 1e9:.2f} Go"
+        elif value >= 1e6:
+            return f"{value / 1e6:.2f} Mo"
+        elif value >= 1e3:
+            return f"{value / 1e3:.2f} Ko"
+        else:
+            return f"{value:.0f} octets"
 
     def update_data(self):
         prev_sent = psutil.net_io_counters().bytes_sent
         start_time = time.time()
 
         while self.running:
-            time.sleep(1)  # Rafraîchissement chaque seconde
+            time.sleep(0.2)  # Intervalle réduit pour plus de fluidité
             current_sent = psutil.net_io_counters().bytes_sent
             elapsed_time = time.time() - start_time
 
-            # Calcul des octets envoyés par seconde
-            bytes_sent_per_sec = current_sent - prev_sent
+            # Calcul des octets envoyés par seconde (moyenne sur 1 seconde)
+            bytes_sent_per_sec = (current_sent - prev_sent) / 0.2
             prev_sent = current_sent
 
             # Mise à jour des données
